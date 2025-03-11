@@ -3,14 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PNG Pixel Reader</title>
+    <title>Dot's DNA Reader</title>
 </head>
 <body>
 
-    <h2>Select a PNG Image</h2>
+    <h2>Select Dot Share Card</h2>
     <input type="file" id="imageInput" accept="image/png"><br><br>
 
-    <div id="pixelInfo" style="font-family:Roboto Mono, Consolas;"></div>
+    <div id="pixelInfo" style="font-family:Roboto Mono, Consolas, monospace; word-wrap:break-word;"></div>
 
     <canvas id="canvas" style="display:none;"></canvas>
 
@@ -57,7 +57,8 @@
                     `Pixel at (${x},${y}): R=${pixelData[0]}, G=${pixelData[1]}, B=${pixelData[2]}, A=${pixelData[3]}`;
 */
                 // get ref color
-                msg = "Okay\n";
+                msg = "";
+                //msg = "Okay\n";
                 const chkColor = 0x00FFFFFF; //GetPixelInt(0, 0, ctx);
                 x = 1;
                 while (chkColor != GetPixelInt(x, 0, ctx)) { ++x; }
@@ -68,7 +69,7 @@
                 
                 rows = Math.round(y / pixSz);
                 cols -= rows;
-                msg += `x: ${x}, y: ${y}, pixSz: ${pixSz}, rows: ${rows}, cols: ${cols}\n`;
+                //msg += `x: ${x}, y: ${y}, pixSz: ${pixSz}, rows: ${rows}, cols: ${cols}\n`;
                 
                 // read reference color
                 colorKey = {};
@@ -77,6 +78,7 @@
                 
                 end = false;
                 // read top frame
+                cntr = 0;
                 for (y = 0; y < rows; ++y)
                 {
                     if (end) break;
@@ -88,10 +90,10 @@
                         if (y == 0 && x < 16)
                             colorKey[color] = x.toString(16).toUpperCase();
                         else if (y == 0 && x == 16)
-                            colorKey[color] = 0;
+                            colorKey[color] = -1;
                         else
                         {
-                            if (colorKey[color] == 0) { end = true; break; }
+                            if (colorKey[color] == -1) { end = true; break; }
                             dna += colorKey[color];
                         }
                     }
@@ -99,58 +101,61 @@
                 // read left frame
                 for (x = 0; x < rows; ++x)
                 {
+                    if (end) break;
                     px = Math.ceil(halfSz + pixSz * x);
                     for (y = 0; y < cols; ++y)
                     {
-                        px = Math.ceil(img.height - halfSz - pixSz * y);
+                        py = Math.ceil(img.height - halfSz - pixSz * y);
                         color = GetPixelInt(px, py, ctx);
-                        if (colorKey[color] == 0) break;
+                        if (colorKey[color] == -1) { end = true; break; }
                         dna += colorKey[color];
                     }
                 }
-/*                // read bottom frame
+                // read bottom frame
                 for (y = 0; y < rows; ++y)
                 {
-                    py = Math.ceil(halfSz + pixSz * y);
+                    if (end) break;
+                    py = Math.ceil(img.height - halfSz - pixSz * y);
                     for (x = 0; x < cols; ++x)
                     {
-                        px = Math.ceil(halfSz + pixSz * x);
-                        color = GetPixelInt(px, py, ctx) >>>0;
-                        if (y == 0 && x < 17)
-                            colorKey[color] = x;
-                        else
-                            dna.push(colorKey[color]);
+                        px = Math.ceil(img.width - halfSz - pixSz * x);
+                        color = GetPixelInt(px, py, ctx);
+                        if (colorKey[color] == -1) { end = true; break; }
+                        dna += colorKey[color];
                     }
                 }
                 // read right frame
-                for (y = 0; y < rows; ++y)
+                for (x = 0; x < rows; ++x)
                 {
-                    py = Math.ceil(halfSz + pixSz * y);
-                    for (x = 0; x < cols; ++x)
+                    if (end) break;
+                    px = Math.ceil(img.width - halfSz - pixSz * x);
+                    for (y = 0; y < cols; ++y)
                     {
-                        px = Math.ceil(halfSz + pixSz * x);
-                        color = GetPixelInt(px, py, ctx) >>>0;
-                        if (y == 0 && x < 17)
-                            colorKey[color] = x;
-                        else
-                            dna.push(colorKey[color]);
+                        py = Math.ceil(halfSz + pixSz * y);
+                        color = GetPixelInt(px, py, ctx);
+                        if (colorKey[color] == -1) { end = true; break; }
+                        if (dna.length >= 1333)
+                            msg += "";
+                        dna += colorKey[color];
                     }
                 }
-*/               
-                msg += "Code Card DNA: " + dna + `\n`;
-                
+
+                dna += "\0";
+                //msg += "Code Card DNA: 0123456789ABCDEF_" + dna + "\n";
+                msg += "Code Card DNA: " + dna + "\n";
+
                 //document.getElementById('pixelInfo').innerText = msg;
-                CloverDNA = "A116A0E08150D24A07D7F353AE4D6CE30410A0E08150D24A07D7F353BFEE60F3041021408020A100A193D088B33EF35187EC91F3814EC05234A8D14CD22847D544A3F0D0C081E8E3510D6CBBD3D18E8D58D324F0D0837FC8E351D229E4F3D17DB1D2F3A222A0F0D080D427F3512E2FF6F3D1574286F3A0F0D0240576D3510D7F57D3D18EFF08D323C080C0518F49DBE3D1E2F4ECE325858510564DCC31EBD6E3C51FEB57F60B48E3D757715AE35810717295EBD810C1138CDB5A10759DD7E3DA10B43E48E35C10B5D0C9EBDC10D62258EB5E1003CA0BDBDE100CC6C0F3DF10C8CF6FE3D8207EF35AC359207D4730F32A1033D0993941D351CADB84E3D14E5D1F3C5267074B3CD2A296724C0370D340B8EC140420D480FC0A0C5566A76CE3D54D93B4240630AF10A0D08F3D39F351D0FB5AF3AC2090A01010224086561646A93013A0F0D0890EACD3D10BCBFAE3524384F1E32141D08125A8E3510466D5F3D10720D2E3528732B7F3D17F1B87F3523AC827F32F30A910808FD0A1F2D0759621F3517D6A82E3D188B080F352F903C8F3D2638E7DE35335CF01F3D300F394E35485D695FBD40B6797F325000210A2F2D0221D3EE351A3CE2EE3D1E6B634F352CF4FADE3D202D9A9E353954B16F3D3650F76FB54294BC5F3D40DB59BE325000310A3F2D0363C00E351334D74F3D12B09B5F352CC1FA5E3D28CD262E35344137AE3D3C8F6EFE3540462D0DBD400E88AE32500AF30181080A0210251976651F352000008F3D2000008F353000008F35412EE470C2500D5CE1589F3A1A2D0116559D351DCCCC4F3D1000008F352A8C011F3539FF2E7E354A1B038E3D4000008FB2500D58615DDF322F2D047723FE351E98607F3D1000008F352E4E21EE3D2000008F35317DADBE3548C1589E3D4000008FB2500D5000008F3AB4000";
-                msg += "Clover's DNA:" + CloverDNA + `\n`;
-                skip = 6;
-                for (i = 0; i < dna.length - skip; ++i)
-                {
-                    if (CloverDNA[i] != dna[i + skip])
-                    {
-                        msg += `CloverDNA[${i}] != dna[${i + skip}]`;
-                        break;
-                    }
-                }
+                //CloverDNA = "A116A0E08150D24A07D7F353AE4D6CE30410A0E08150D24A07D7F353BFEE60F3041021408020A100A193D088B33EF35187EC91F3814EC05234A8D14CD22847D544A3F0D0C081E8E3510D6CBBD3D18E8D58D324F0D0837FC8E351D229E4F3D17DB1D2F3A222A0F0D080D427F3512E2FF6F3D1574286F3A0F0D0240576D3510D7F57D3D18EFF08D323C080C0518F49DBE3D1E2F4ECE325858510564DCC31EBD6E3C51FEB57F60B48E3D757715AE35810717295EBD810C1138CDB5A10759DD7E3DA10B43E48E35C10B5D0C9EBDC10D62258EB5E1003CA0BDBDE100CC6C0F3DF10C8CF6FE3D8207EF35AC359207D4730F32A1033D0993941D351CADB84E3D14E5D1F3C5267074B3CD2A296724C0370D340B8EC140420D480FC0A0C5566A76CE3D54D93B4240630AF10A0D08F3D39F351D0FB5AF3AC2090A01010224086561646A93013A0F0D0890EACD3D10BCBFAE3524384F1E32141D08125A8E3510466D5F3D10720D2E3528732B7F3D17F1B87F3523AC827F32F30A910808FD0A1F2D0759621F3517D6A82E3D188B080F352F903C8F3D2638E7DE35335CF01F3D300F394E35485D695FBD40B6797F325000210A2F2D0221D3EE351A3CE2EE3D1E6B634F352CF4FADE3D202D9A9E353954B16F3D3650F76FB54294BC5F3D40DB59BE325000310A3F2D0363C00E351334D74F3D12B09B5F352CC1FA5E3D28CD262E35344137AE3D3C8F6EFE3540462D0DBD400E88AE32500AF30181080A0210251976651F352000008F3D2000008F353000008F35412EE470C2500D5CE1589F3A1A2D0116559D351DCCCC4F3D1000008F352A8C011F3539FF2E7E354A1B038E3D4000008FB2500D58615DDF322F2D047723FE351E98607F3D1000008F352E4E21EE3D2000008F35317DADBE3548C1589E3D4000008FB2500D5000008F3AB4000";
+                //msg += "Clover's DNA: 0123456789ABCDEF_______" + CloverDNA + `\n`;
+                // skip = 6;
+                // for (i = 0; i < dna.length - skip; ++i)
+                // {
+                //     if (CloverDNA[i] != dna[i + skip])
+                //     {
+                //         msg += `CloverDNA[${i}] != dna[${i + skip}]`;
+                //         break;
+                //     }
+                // }
                 document.getElementById('pixelInfo').innerText = msg;
             };
         });
