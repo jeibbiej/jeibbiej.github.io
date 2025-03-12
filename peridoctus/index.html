@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Dot's DNA Reader (v1.0.5-2025-03-12)</title>
+	<title>Dot's DNA Reader (v1.0.6-2025-03-12)</title>
 	<!--
 	AUTHOR: jeibbiej
 	EMAIL: jeibbiej.apps@gmail.com
@@ -13,7 +13,7 @@
 <body>
 
 	<h3>Select Dot Share Card</h3>
-	<input type="file" id="imageInput" accept="image/png, image/jpeg">
+	<input type="file" id="imageInput" accept="image/png">
 	<br/>
 	<br/>
 	<h3>Or input DNA Sequence</h3>
@@ -74,12 +74,12 @@
 
 			const file = event.target.files[0];
 
-			const arr = new Uint8Array(event.target.result);
-			const header = arr.subarray(0, 4);
-			const signature = Array.from(header).map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
-			const pngSignature = "89504E47"; // PNG: 89 50 4E 47
+			//const arr = new Uint8Array(event.target.result);
+			//const header = arr.subarray(0, 4);
+			//const signature = Array.from(header).map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+			//const pngSignature = "89504E47"; // PNG: 89 50 4E 47
 			
-			if (!file /*|| file.type !== "image/png"*/ || signature !== pngSignature)
+			if (!file || file.type !== "image/png" /*|| signature !== pngSignature*/)
 			{
 				alert("Please select a valid image.");
 				return;
