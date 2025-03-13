@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Dot's DNA Reader (v1.1.0-202503131326)</title>
+	<title>Dot's DNA Reader (v1.1.2-202503131643)</title>
 	<!--
 	AUTHOR: jeibbiej
 	EMAIL: jeibbiej.apps@gmail.com
@@ -11,26 +11,47 @@
 	-->
 </head>
 <body>
-
-	<h3>Select Dot Share Card</h3>
-	<input type="file" id="imageInput" accept="image/png, image/jpeg">
-	<br/>
-	<br/>
-	<h3>Or input DNA Sequence</h3>
-	<textarea id="txtDna" style="width: calc(100% - 50px); height: 150px; resize: none; overflow: scroll;" placeholder="Enter DNA text sequence."></textarea>
-	<button onclick="SpliceDna(document.getElementById('txtDna').value)" style="width: 50px;">Go</button>
-	<br/>
-	<br/>
-	<div id="loading" style="display: none;"><img src="loading.gif"></div>
-	<div style="text-align: center;">
-		<!--canvas id="canvas" style="display:none;"></canvas-->
-		<canvas id="canvas" style="width: max(256px, 50vw); height: auto; aspect-ratio: 1/1; text-align: center;"></canvas>
+	<div id="ver" style="text-align: right; font-size: 8px;"></div>
+	<div id="dnaCard">
+		<h3>Select Dot Share Card</h3>
+		<a href="#" onclick="toggleDiv()">or paste DNA sequence.</a>
+		<br/>
+		<br/>
+		<input type="file" id="imageInput" accept="image/png, image/jpeg">
+		<br/>
+		<br/>
+		<div id="loading" style="display: none;"><img src="loading.gif"></div>
+		<div style="text-align: center;">
+			<!--canvas id="canvas" style="display:none;"></canvas-->
+			<canvas id="canvas" style="width: max(256px, 50vw); height: auto; aspect-ratio: 1/1; text-align: center;"></canvas>
+		</div>
+		</div>
+	<div id="dnaText" style="display: none;">
+		<h3>Input DNA Sequence</h3>
+		<a href="#" onclick="toggleDiv()">or upload DNA Dot Card.</a>
+		<br/>
+		<br/>
+		<textarea id="txtDna" style="width: calc(100% - 50px); height: 150px; resize: none; overflow: scroll;" placeholder="Enter DNA text sequence."></textarea>
+		<button onclick="SpliceDna(document.getElementById('txtDna').value)" style="width: 50px;">Go</button>
+		<br/>
+		<br/>
 	</div>
 	<div id="pixelInfo" style="font-family:Roboto Mono, Consolas, monospace; word-wrap: break-word; white-space: pre-wrap;"></div>
 	<table id="colorRef"></table>
 
 	<script>
-		debug = true;
+		debug = false;
+		ver = "v1.1.0-202503131326";
+		document.title = `Dot's DNA Reader (${ver})`;
+		document.getElementById("ver").innerText = ver;
+
+		function toggleDiv()
+		{
+			const div1 = document.getElementById("dnaCard");
+			const div2 = document.getElementById("dnaText");
+			div1.style.display = div1.style.display === "none" ? "block" : "none";
+			div2.style.display = div2.style.display === "none" ? "block" : "none";
+		}
 
 		function SpliceDna(dna)
 		{
@@ -99,9 +120,14 @@
 			{
 				const signature = await getFileSignature(file);
 				const pngSignature = "89504E47"; // PNG signature
-				if (!file /*|| file.type !== "image/png" */ || signature !== pngSignature)
+				if (!file)
 				{
 					alert("Please select a valid image.");
+					return;
+				}
+				if (signature !== pngSignature)
+				{
+					alert("Image is not a PNG file.");
 					return;
 				}
 			}
@@ -164,7 +190,7 @@
 				// read reference color
 				colorKey = {};
 				dna = "";
-				halfSz = pixSz / 2;
+				halfSz = pixSz / 2.0;
 				
 				end = false;
 				// read top frame
@@ -185,10 +211,64 @@
 						{
 							if (!(color in colorKey))
 							{
-								// TODO: fix this, read in spiral until one color is read.
-								end = true;
-								document.getElementById('pixelInfo').innerHTML = `\n\nUnrecognized color key RGB(#${color.toString(16).padStart(6, "0")}) at top(${x + 1}, ${y + 1}) / pixel(${px}, ${py}).\n`;
-								return;
+								const hw = Math.ceil(halfSz);
+								foundMatch = false;
+								for (w = 1; w < hw; ++w)
+								{
+									// top-left to top-right
+									for (let nx = px - w; nx <= px + w; ++nx)
+									{
+										color = GetPixelInt(nx, py - w, ctx);
+										if (color in colorKey)
+										{
+											foundMatch = true;
+											break;
+										}
+									}
+									if (foundMatch) break;
+									// top-right to bottom-right
+									for (let ny = py - w + 1; ny <= py + w; ++ny)
+									{
+										color = GetPixelInt(px + w, ny, ctx);
+										if (color in colorKey)
+										{
+											foundMatch = true;
+											break;
+										}
+									}
+									if (foundMatch) break;
+									// bottom-right to bottom-left
+									for (let nx = px + w - 1; nx <= px - w; --nx)
+									{
+										color = GetPixelInt(nx, py + w, ctx);
+										if (color in colorKey)
+										{
+											foundMatch = true;
+											break;
+										}
+									}
+									if (foundMatch) break;
+									// bottom-left to top-left
+									for (let ny = py + w - 1; ny <= py - w; --ny)
+									{
+										color = GetPixelInt(px - w, ny, ctx);
+										if (color in colorKey)
+										{
+											foundMatch = true;
+											break;
+										}
+									}
+									if (foundMatch) break;
+								}
+
+								if (!foundMatch)
+								{
+									end = true;
+									msg = `\n\nUnrecognized color key RGB(#${color.toString(16).padStart(6, "0")}) at top(${x + 1}, ${y + 1}) / pixel(${px}, ${py}).\n`;
+									msg += `Tried looking around that pixel but unable to find a matching color.\n`;
+									document.getElementById('pixelInfo').innerText = msg;
+									return;
+								}
 							}
 							if (colorKey[color] == -1)
 							{
@@ -249,7 +329,6 @@
 				if (debug) msg =  debugMsg + "\n-----\n" + msg;
 				//document.getElementById('pixelInfo').innerText = msg;
 
-				document.getElementById('txtDna').value = dna;
 				const genome = new Genome(dna);
 				msg = "\n==========\nraw DNA sequence: " + genome.raw;
 				document.getElementById('pixelInfo').innerHTML = msg;
@@ -370,8 +449,8 @@
 					}
 
 					let keyName = gene["name"];
-					if (keyName == "Colors")
-						msg = msg;
+					if (keyName == "")
+						msg;
 
 					// check if declared as array
 					if (obj.hasOwnProperty(keyName) &&
@@ -579,6 +658,14 @@
 					0x24: "Scales",
 				};
 
+				let ePlumageInterpolation = 
+				{
+					0x00: "None",
+					0x01: "Front_To_Back",
+					0x02: "Top_To_Bottom",
+					0x03: "Random"
+				};
+
 				//==================================================
 				// STRUCT
 				let sMaterialParameter = new Genome.Gene("",
@@ -637,6 +724,7 @@
 					1: new Genome.Gene("Location", {}, false, false, eBodyPart),
 					2: new Genome.Gene("Style", sStyleParameter.genes),
 					3: new Genome.Gene("StyleVariant", sStyleParameter.genes),
+					4: new Genome.Gene("InterpolationOption", {}, false, false, ePlumageInterpolation),
 					5: new Genome.Gene("Sharpness"),
 				});
 
