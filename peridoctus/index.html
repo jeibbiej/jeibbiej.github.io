@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Dot's DNA Reader (v1.1.2-202503131643)</title>
+	<title>Dot's DNA Reader (v1.1.4-202503131857)</title>
 	<!--
 	AUTHOR: jeibbiej
 	EMAIL: jeibbiej.apps@gmail.com
@@ -49,6 +49,7 @@
 		{
 			const div1 = document.getElementById("dnaCard");
 			const div2 = document.getElementById("dnaText");
+			document.getElementById('pixelInfo').innerHTML = "";
 			div1.style.display = div1.style.display === "none" ? "block" : "none";
 			div2.style.display = div2.style.display === "none" ? "block" : "none";
 		}
@@ -148,6 +149,11 @@
 				const ctx = canvas.getContext('2d');
 
 				// Set canvas size and draw image
+				if (img.width < 1024 || img.height < 1024)
+				{
+					alert("Unable to read Dot's Share Card properly. Size is too small.");
+					return;
+				}
 				canvas.width = img.width;
 				canvas.height = img.height;
 				ctx.drawImage(img, 0, 0);
@@ -156,7 +162,7 @@
 				msg = "";
 				debugMsg = "Okay\n";
 				//const chkColor = 0x00FFFFFF; //GetPixelInt(0, 0, ctx);
-				const chkLite = 0.5;
+				const chkLite = 0.6;
 				x = 1;
 				//while (chkColor != GetPixelInt(x, 0, ctx)) { ++x; }
 				while (GetLightness(x, 0, ctx) < chkLite)
@@ -270,24 +276,28 @@
 
 								if (!foundMatch)
 								{
-									end = true;
+									//end = true;
+									dna += "X";
 									pixelMsg += `Unrecognized color key RGB(#${color.toString(16).toUpperCase().padStart(6, "0")}) at top(${x + 1}, ${y + 1}) / pixel(${px}, ${py}).\n`;
-									pixelMsg += `Tried looking around that pixel but unable to find a matching color.`;
-									document.getElementById('pixelInfo').innerText = pixelMsg;
-									return;
+									pixelMsg += `Tried looking around that pixel but unable to find a matching color.\n\n`;
+									//return;
 								}
 								else
 								{
 									pixelMsg += `Unrecognized color key RGB(#${color.toString(16).toUpperCase().padStart(6, "0")}) at top(${x + 1}, ${y + 1}) / pixel(${px}, ${py}).\n`;
-									pixelMsg += `Tried looking around that pixel and found a matching color at pixel(${nx}, ${ny}).\n`;
-									//document.getElementById('pixelInfo').innerText = msg;
+									pixelMsg += `Tried looking around that pixel and found a matching color at pixel(${nx}, ${ny}).\n\n`;
+									dna += colorKey[color];
 								}
 							}
-							if (colorKey[color] == -1)
+							else if (colorKey[color] == -1)
 							{
-								end = true; break;
+								end = true;
+								break;
 							}
-							dna += colorKey[color];
+							else
+							{
+								dna += colorKey[color];
+							}
 						}
 					}
 				}
@@ -345,15 +355,15 @@
 				const genome = new Genome(dna);
 				msg = "\n==========\nraw DNA sequence: " + genome.raw;
 				document.getElementById('pixelInfo').innerHTML = msg;
-				document.getElementById('pixelInfo').innerHTML = document.getElementById('pixelInfo').innerHTML.replace(/undefined/g, "<span style='background-color: red;'>undefined</span>");
+				document.getElementById('pixelInfo').innerHTML = document.getElementById('pixelInfo').innerHTML.replace(/undefined/g, "<span style='background-color: red; color: white;'>undefined</span>");
+				document.getElementById('pixelInfo').innerHTML = document.getElementById('pixelInfo').innerHTML.replace(/X/g, "<span style='background-color: red; color: white;'>X</span>");
 				msg = "\n==========\nJSON:\n" + genome.toString(4);
 				document.getElementById('pixelInfo').innerHTML += msg;
-				document.getElementById('pixelInfo').innerHTML = document.getElementById('pixelInfo').innerHTML.replace(/"ERROR"/g, "\"<span style='background-color: red;'>ERROR</span>\"");
+				document.getElementById('pixelInfo').innerHTML = document.getElementById('pixelInfo').innerHTML.replace(/"ERROR"/g, "\"<span style='background-color: red; color: white;'>ERROR</span>\"");
 				document.getElementById('pixelInfo').innerHTML += "\n" + pixelMsg;
 				// loading.style.display = "none";
 			};
 		});
-
 
 		class Genome
 		{
