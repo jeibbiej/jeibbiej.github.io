@@ -186,6 +186,7 @@
 				rows = Math.round(y / pixSz);
 				cols -= rows;
 				debugMsg += `x: ${x}, y: ${y}, pixSz: ${pixSz}, rows: ${rows}, cols: ${cols}\n`;
+				pixelMsg = "";
 				
 				// read reference color
 				colorKey = {};
@@ -211,14 +212,17 @@
 						{
 							if (!(color in colorKey))
 							{
-								const hw = Math.ceil(halfSz);
+								const hw = Math.floor(halfSz);
 								foundMatch = false;
+								nx = 0;
+								ny = 0;
 								for (w = 1; w < hw; ++w)
 								{
 									// top-left to top-right
-									for (let nx = px - w; nx <= px + w; ++nx)
+									ny = py - w;
+									for (let nx = px - w; nx < px + w; ++nx)
 									{
-										color = GetPixelInt(nx, py - w, ctx);
+										color = GetPixelInt(nx, ny, ctx);
 										if (color in colorKey)
 										{
 											foundMatch = true;
@@ -227,9 +231,10 @@
 									}
 									if (foundMatch) break;
 									// top-right to bottom-right
-									for (let ny = py - w + 1; ny <= py + w; ++ny)
+									nx = px + w;
+									for (let ny = py - w; ny < py + w; ++ny)
 									{
-										color = GetPixelInt(px + w, ny, ctx);
+										color = GetPixelInt(nx, ny, ctx);
 										if (color in colorKey)
 										{
 											foundMatch = true;
@@ -238,9 +243,10 @@
 									}
 									if (foundMatch) break;
 									// bottom-right to bottom-left
-									for (let nx = px + w - 1; nx <= px - w; --nx)
+									ny = py + w;
+									for (let nx = px + w; nx > px - w; --nx)
 									{
-										color = GetPixelInt(nx, py + w, ctx);
+										color = GetPixelInt(nx, ny, ctx);
 										if (color in colorKey)
 										{
 											foundMatch = true;
@@ -249,9 +255,10 @@
 									}
 									if (foundMatch) break;
 									// bottom-left to top-left
-									for (let ny = py + w - 1; ny <= py - w; --ny)
+									nx = px - w;
+									for (let ny = py + w; ny > py - w; --ny)
 									{
-										color = GetPixelInt(px - w, ny, ctx);
+										color = GetPixelInt(nx, ny, ctx);
 										if (color in colorKey)
 										{
 											foundMatch = true;
@@ -264,10 +271,16 @@
 								if (!foundMatch)
 								{
 									end = true;
-									msg = `\n\nUnrecognized color key RGB(#${color.toString(16).padStart(6, "0")}) at top(${x + 1}, ${y + 1}) / pixel(${px}, ${py}).\n`;
-									msg += `Tried looking around that pixel but unable to find a matching color.\n`;
-									document.getElementById('pixelInfo').innerText = msg;
+									pixelMsg += `Unrecognized color key RGB(#${color.toString(16).toUpperCase().padStart(6, "0")}) at top(${x + 1}, ${y + 1}) / pixel(${px}, ${py}).\n`;
+									pixelMsg += `Tried looking around that pixel but unable to find a matching color.`;
+									document.getElementById('pixelInfo').innerText = pixelMsg;
 									return;
+								}
+								else
+								{
+									pixelMsg += `Unrecognized color key RGB(#${color.toString(16).toUpperCase().padStart(6, "0")}) at top(${x + 1}, ${y + 1}) / pixel(${px}, ${py}).\n`;
+									pixelMsg += `Tried looking around that pixel and found a matching color at pixel(${nx}, ${ny}).\n`;
+									//document.getElementById('pixelInfo').innerText = msg;
 								}
 							}
 							if (colorKey[color] == -1)
@@ -336,6 +349,7 @@
 				msg = "\n==========\nJSON:\n" + genome.toString(4);
 				document.getElementById('pixelInfo').innerHTML += msg;
 				document.getElementById('pixelInfo').innerHTML = document.getElementById('pixelInfo').innerHTML.replace(/"ERROR"/g, "\"<span style='background-color: red;'>ERROR</span>\"");
+				document.getElementById('pixelInfo').innerHTML += "\n" + pixelMsg;
 				// loading.style.display = "none";
 			};
 		});
