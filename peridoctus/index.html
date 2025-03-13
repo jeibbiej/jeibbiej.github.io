@@ -3,7 +3,7 @@
 <head>
 	<meta charset="UTF-8">
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
-	<title>Dot's DNA Reader (v1.0.6-2025-03-12)</title>
+	<title>Dot's DNA Reader (v1.1.0-202503131326)</title>
 	<!--
 	AUTHOR: jeibbiej
 	EMAIL: jeibbiej.apps@gmail.com
@@ -13,7 +13,7 @@
 <body>
 
 	<h3>Select Dot Share Card</h3>
-	<input type="file" id="imageInput" accept="image/png">
+	<input type="file" id="imageInput" accept="image/png, image/jpeg">
 	<br/>
 	<br/>
 	<h3>Or input DNA Sequence</h3>
@@ -64,8 +64,29 @@
 			}
 			return newdna;
 		}
+
+		function getFileSignature(file)
+		{
+			return new Promise((resolve, reject) =>
+			{
+				if (!file) reject("");
+
+				const reader = new FileReader();
+				reader.onload = function(e)
+				{
+					const arr = new Uint8Array(e.target.result);
+					const header = arr.subarray(0, 4);
+					const signature = Array.from(header).map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
+					
+					resolve(signature);
+				};
+
+				reader.onerror = reject;
+		        reader.readAsArrayBuffer(file);
+			});
+		}
 		
-		document.getElementById('imageInput').addEventListener('change', function(event)
+		document.getElementById('imageInput').addEventListener('change', async function(event)
 		{
 			// const loading = document.getElementById("loading");
 			// loading.style.display = "flex";
@@ -74,14 +95,19 @@
 
 			const file = event.target.files[0];
 
-			//const arr = new Uint8Array(event.target.result);
-			//const header = arr.subarray(0, 4);
-			//const signature = Array.from(header).map(b => b.toString(16).padStart(2, "0")).join("").toUpperCase();
-			//const pngSignature = "89504E47"; // PNG: 89 50 4E 47
-			
-			if (!file || file.type !== "image/png" /*|| signature !== pngSignature*/)
+			try
 			{
-				alert("Please select a valid image.");
+				const signature = await getFileSignature(file);
+				const pngSignature = "89504E47"; // PNG signature
+				if (!file /*|| file.type !== "image/png" */ || signature !== pngSignature)
+				{
+					alert("Please select a valid image.");
+					return;
+				}
+			}
+			catch (err)
+			{
+				alert("Error reading file: ", err);
 				return;
 			}
 
@@ -91,6 +117,7 @@
 			img.src = URL.createObjectURL(file);
 			img.onload = function ()
 			{
+				document.getElementById('txtDna').value = "";
 				const canvas = document.getElementById('canvas');
 				const ctx = canvas.getContext('2d');
 
@@ -343,7 +370,7 @@
 					}
 
 					let keyName = gene["name"];
-					if (keyName == "")
+					if (keyName == "Colors")
 						msg = msg;
 
 					// check if declared as array
@@ -387,6 +414,14 @@
 							else
 								val = this.readObject(subDna, gene);
 
+							// check if forced to have value
+							for (let g in gene.genes)
+							{
+								if (gene.genes[g].default != null &&
+									!val.hasOwnProperty(gene.genes[g].name))
+									val[gene.genes[g].name] = gene.genes[g].default;
+							}
+
 							i += objSz;
 							break;
 						}
@@ -420,13 +455,14 @@
 
 			static Gene = class
 			{
-				constructor(name, genes = {}, isArray = false, isStr = false, enumList = {})
+				constructor(name, genes = {}, isArray = false, isStr = false, enumList = {}, defVal = null)
 				{
 					this.name = name;
 					this.genes = genes;
 					this.isArray = isArray;
 					this.isStr = isStr;
 					this.enumList = enumList;
+					this.default = defVal;
 				}
 			};
 
@@ -556,8 +592,8 @@
 
 				let sCoord = new Genome.Gene("",
 				{
-					1: new Genome.Gene("X"),
-					2: new Genome.Gene("Y"),
+					1: new Genome.Gene("X", {}, false, false, {}, 0.0),
+					2: new Genome.Gene("Y", {}, false, false, {}, 0.0),
 				});
 
 				let sPlumageParameter = new Genome.Gene("",
@@ -606,9 +642,9 @@
 
 				let sDiffusionParameter = new Genome.Gene("",
 				{
-					1: new Genome.Gene("DiffusionRate"),
-					2: new Genome.Gene("FeedRate"),
-					3: new Genome.Gene("KillRate"),
+					1: new Genome.Gene("DiffusionRate", {}, false, false, {}, 0.0),
+					2: new Genome.Gene("FeedRate", {}, false, false, {}, 0.0),
+					3: new Genome.Gene("KillRate", {}, false, false, {}, 0.0),
 				});
 
 				//==================================================
@@ -639,10 +675,10 @@
 							2: new Genome.Gene("PatternMaskType", {}, false, false, ePatternType),
 							3: new Genome.Gene("PatternTransform",
 							{
-								1: new Genome.Gene("X"),
-								2: new Genome.Gene("Y"),
-								3: new Genome.Gene("V"),
-								4: new Genome.Gene("W"),
+								1: new Genome.Gene("X", {}, false, false, {}, 0.0),
+								2: new Genome.Gene("Y", {}, false, false, {}, 0.0),
+								3: new Genome.Gene("V", {}, false, false, {}, 0.0),
+								4: new Genome.Gene("W", {}, false, false, {}, 0.0),
 							}),
 						}, true),
 						3: new Genome.Gene("ProceduralPattern",
@@ -673,9 +709,9 @@
 					{
 						1: new Genome.Gene("Colors",
 						{
-							1: new Genome.Gene("Red"),
-							2: new Genome.Gene("Green"),
-							3: new Genome.Gene("Blue"),
+							1: new Genome.Gene("Red", {}, false, false, {}, 0.0),
+							2: new Genome.Gene("Green", {}, false, false, {}, 0.0),
+							3: new Genome.Gene("Blue", {}, false, false, {}, 0.0),
 						}, true),
 					}),
 					6: new Genome.Gene("Face",
@@ -777,7 +813,7 @@
 					}),
 					71: new Genome.Gene("Voice",
 					{
-						//1: Genome.Gene("VoiceNumber"),
+						1: new Genome.Gene("VoiceNumber"),
 					}),
 				});
 
